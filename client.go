@@ -26,6 +26,7 @@ import (
 	"go.mau.fi/util/ptr"
 	"go.mau.fi/util/random"
 	"golang.org/x/net/proxy"
+	"golang.org/x/sync/semaphore"
 
 	"go.mau.fi/whatsmeow/appstate"
 	waBinary "go.mau.fi/whatsmeow/binary"
@@ -119,6 +120,7 @@ type Client struct {
 
 	messageRetries     map[string]int
 	messageRetriesLock sync.Mutex
+	retrySema          *semaphore.Weighted
 
 	incomingRetryRequestCounter     map[incomingRetryKey]int
 	incomingRetryRequestCounterLock sync.Mutex
@@ -403,6 +405,16 @@ func (cli *Client) SetPreLoginHTTPClient(h *http.Client) {
 	cli.preLoginHTTP = h
 }
 
+// SetMaxParallelRetryReceiptHandling sets how many retry receipts can be handled in parallel.
+// Defaults to unlimited. This should only be set before connecting, changing it afterwards can cause data races.
+func (cli *Client) SetMaxParallelRetryReceiptHandling(n int64) {
+	if n <= 0 {
+		cli.retrySema = nil
+	} else {
+		cli.retrySema = semaphore.NewWeighted(n)
+	}
+}
+
 func (cli *Client) getSocketWaitChan() <-chan struct{} {
 	cli.socketLock.RLock()
 	ch := cli.socketWait
@@ -503,6 +515,9 @@ func (cli *Client) connect(ctx context.Context) error {
 }
 
 func (cli *Client) unlockedConnect(ctx context.Context) error {
+	if cli.Store.Deleted {
+		return store.ErrDeviceDeleted
+	}
 	if cli.socket != nil {
 		if !cli.socket.IsConnected() {
 			cli.unlockedDisconnect()
