@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr *)",
+      "Bash(gh api *)",
+      "Bash(git fetch *)",
+      "Bash(git cherry-pick *)",
+      "Bash(go build *)"
+    ]
+  }
+}
