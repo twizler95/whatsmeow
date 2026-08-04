@@ -99,6 +99,7 @@ type MessageInfo struct {
 	ServerID  MessageServerID
 	Type      string
 	PushName  string
+	Username  string // The sender's WhatsApp username, without the leading '@'. Empty if they have not set one.
 	Timestamp time.Time
 	Category  string
 	Multicast bool

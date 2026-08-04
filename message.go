@@ -232,6 +232,12 @@ func (cli *Client) parseMessageInfo(node *waBinary.Node) (*types.MessageInfo, er
 	info.ServerID = types.MessageServerID(ag.OptionalInt("server_id"))
 	info.Timestamp = ag.UnixTime("t")
 	info.PushName = ag.OptionalString("notify")
+	// Senders who have set a WhatsApp username carry it on every message stanza:
+	//   <message from="...@lid" notify="NT" username="nickalodeon2026" ...>
+	// This is the only receive-time source. Usernames are otherwise learned only
+	// from app state or history sync, neither of which covers a stranger's first
+	// message - and a username-addressed contact may have no phone number at all.
+	info.Username = ag.OptionalString("username")
 	info.Category = ag.OptionalString("category")
 	info.Type = ag.OptionalString("type")
 	info.Edit = types.EditAttribute(ag.OptionalString("edit"))
